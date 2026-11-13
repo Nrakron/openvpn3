@@ -4,55 +4,87 @@
 //               packet encryption, packet authentication, and
 //               packet compression.
 //
-//    Copyright (C) 2012-2020 OpenVPN Inc.
+//    Copyright (C) 2012- OpenVPN Inc.
 //
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU Affero General Public License Version 3
-//    as published by the Free Software Foundation.
+//    SPDX-License-Identifier: MPL-2.0 OR AGPL-3.0-only WITH openvpn3-openssl-exception
 //
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU Affero General Public License for more details.
-//
-//    You should have received a copy of the GNU Affero General Public License
-//    along with this program in the COPYING file.
-//    If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
 #include <string>
 
-namespace openvpn {
-  namespace HaltRestart {
-    enum Type {
-      HALT,             // disconnect
-      RESTART,          // restart, don't preserve session token
-      RESTART_PSID,     // restart, preserve session token
-      RESTART_PASSIVE,  // restart, preserve session token and local client instance object
-      AUTH_FAILED,      // auth fail, don't preserve session token
-      RAW,              // pass raw message to client
-    };
+namespace openvpn::HaltRestart {
+enum Type
+{
+    HALT,            // disconnect
+    RESTART,         // restart, don't preserve session token
+    RESTART_PSID,    // restart, preserve session token
+    RESTART_PASSIVE, // restart, preserve session token and local client instance object
+    AUTH_FAILED,     // auth fail, don't preserve session token
+    RAW,             // pass raw message to client
+};
 
-    inline std::string to_string(Type type)
+inline std::string to_string(Type type)
+{
+    switch (type)
     {
-      switch (type)
-	{
-	case HALT:
-	  return "HALT";
-	case RESTART:
-	  return "RESTART";
-	case RESTART_PSID:
-	  return "RESTART_PSID";
-	case RESTART_PASSIVE:
-	  return "RESTART_PASSIVE";
-	case AUTH_FAILED:
-	  return "AUTH_FAILED";
-	case RAW:
-	  return "RAW";
-	default:
-	  return "HaltRestart_?";
-	}
+    case HALT:
+        return "HALT";
+    case RESTART:
+        return "RESTART";
+    case RESTART_PSID:
+        return "RESTART_PSID";
+    case RESTART_PASSIVE:
+        return "RESTART_PASSIVE";
+    case AUTH_FAILED:
+        return "AUTH_FAILED";
+    case RAW:
+        return "RAW";
+    default:
+        return "HaltRestart_?";
     }
-  }
 }
+} // namespace openvpn::HaltRestart
+
+namespace openvpn {
+/**
+ * @brief Why a server-side session is being torn down.
+ * @details Recorded by the protocol session as the cause becomes known and
+ *  handed to the management layer immediately before teardown, so an
+ *  embedder's disconnect callback can distinguish an orderly client exit from
+ *  a keepalive timeout from a server shutdown. @c UNKNOWN covers the paths
+ *  that carry no distinguishing signal: transport errors, protocol errors,
+ *  and session invalidation other than keepalive.
+ */
+enum class DisconnectCause
+{
+    UNKNOWN,
+    KEEPALIVE_TIMEOUT,
+    CLIENT_EXIT,
+    SERVER_SHUTDOWN,
+};
+
+/**
+ * @brief Render a cause for logging.
+ * @param type The cause to render.
+ * @return A stable, human-readable name.
+ */
+inline std::string to_string(const DisconnectCause type)
+{
+    using enum DisconnectCause;
+
+    switch (type)
+    {
+    case UNKNOWN:
+        return "UNKNOWN";
+    case KEEPALIVE_TIMEOUT:
+        return "KEEPALIVE_TIMEOUT";
+    case CLIENT_EXIT:
+        return "CLIENT_EXIT";
+    case SERVER_SHUTDOWN:
+        return "SERVER_SHUTDOWN";
+    default:
+        return "DisconnectCause_?";
+    }
+}
+} // namespace openvpn

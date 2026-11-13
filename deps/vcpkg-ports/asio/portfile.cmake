@@ -1,39 +1,34 @@
-#header-only library
-include(vcpkg_common_functions)
+set(VCPKG_BUILD_TYPE release) # header-only
 
+string(REPLACE "." "-" ref "asio-${VERSION}")
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO chriskohlhoff/asio
-    REF asio-1-18-1
-    SHA512 c84e6fca448ed419a976756840f3f4543291a5a7d4f62d4de7c06945b2cd9ececca6633049ad5e36367d60f67a4f2735be017445514ae9fa9497d4af2a4d48f8
+    REF "${ref}"
+    SHA512 d340396e320f352a860c9f4904457a365969a95e2e564675e024a3a5885194382f37708a87505904a99688a2f1fd3f1abe64959316bf7e73032d3250bc3b76be
     HEAD_REF master
     PATCHES
-        ..\\..\\asio\\patches\\0001-Added-Apple-NAT64-support-when-both-ASIO_HAS_GETADDR.patch
-        ..\\..\\asio\\patches\\0002-Added-randomize-method-to-asio-ip-tcp-resolver-resul.patch
-        ..\\..\\asio\\patches\\0003-Added-user-code-hook-async_connect_post_open-to-be-c.patch
-        ..\\..\\asio\\patches\\0004-error_code.ipp-Use-English-for-Windows-error-message.patch
+        0001-Added-Apple-NAT64-support-when-both-ASIO_HAS_GETADDR.patch
+        0002-Added-user-code-hook-async_connect_post_open-to-be-c.patch
+        0003-error_code.ipp-Use-English-for-Windows-error-message.patch
+        0004-Added-kovpn-route_id-support-to-endpoints-for-sendto.patch
+        0005-basic_resolver_results-added-data-and-cdata-members-.patch
+        0006-reactive_socket_service_base-add-constructor-for-bas.patch
 )
+file(COPY "${CMAKE_CURRENT_LIST_DIR}/CMakeLists.txt" DESTINATION "${SOURCE_PATH}")
 
 # Always use "ASIO_STANDALONE" to avoid boost dependency
-file(READ "${SOURCE_PATH}/asio/include/asio/detail/config.hpp" _contents)
-string(REPLACE "defined(ASIO_STANDALONE)" "!defined(VCPKG_DISABLE_ASIO_STANDALONE)" _contents "${_contents}")
-file(WRITE "${SOURCE_PATH}/asio/include/asio/detail/config.hpp" "${_contents}")
+vcpkg_replace_string("${SOURCE_PATH}/include/asio/detail/config.hpp" "defined(ASIO_STANDALONE)" "!defined(VCPKG_DISABLE_ASIO_STANDALONE)")
 
-# CMake install
-file(COPY ${CMAKE_CURRENT_LIST_DIR}/CMakeLists.txt DESTINATION ${SOURCE_PATH})
-vcpkg_configure_cmake(
-    SOURCE_PATH ${SOURCE_PATH}
-    PREFER_NINJA
+vcpkg_cmake_configure(
+    SOURCE_PATH "${SOURCE_PATH}"
+    OPTIONS
+        -DPACKAGE_VERSION=${VERSION}
 )
-vcpkg_install_cmake()
+vcpkg_cmake_install()
+vcpkg_fixup_pkgconfig()
 
-vcpkg_fixup_cmake_targets(CONFIG_PATH "share/asio")
-file(INSTALL
-    ${CMAKE_CURRENT_LIST_DIR}/asio-config.cmake
-    DESTINATION ${CURRENT_PACKAGES_DIR}/share/asio/
-)
-file(REMOVE_RECURSE ${CURRENT_PACKAGES_DIR}/debug)
+vcpkg_cmake_config_fixup()
+file(INSTALL "${CMAKE_CURRENT_LIST_DIR}/asio-config.cmake" DESTINATION "${CURRENT_PACKAGES_DIR}/share/${PORT}")
 
-# Handle copyright
-file(INSTALL ${SOURCE_PATH}/asio/LICENSE_1_0.txt DESTINATION ${CURRENT_PACKAGES_DIR}/share/${PORT} RENAME copyright)
-
+vcpkg_install_copyright(FILE_LIST "${SOURCE_PATH}/LICENSE_1_0.txt")
